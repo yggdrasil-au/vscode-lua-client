@@ -1,9 +1,15 @@
+
+## Core Backend for vscode extension, Lua Language Server
 [submodule "server"]
 	path = server
-	url = https://github.com/LuaLS/lua-language-server
-[submodule "client/3rd/vscode-lua-doc"]
-	path = client/3rd/vscode-lua-doc
-	url = https://github.com/LuaLS/vscode-lua-doc
+	url = https://github.com/yggdrasil-au/lua-language-server
+
+## Documentation for Lua and Moonsharps Lua
+[submodule "client/submodules/vscode-lua-doc"]
+	path = client/submodules/vscode-lua-doc
+	url = https://github.com/yggdrasil-au/vscode-lua-doc
+
+##
 #[submodule "client/webvue"]
 #	path = client/webvue
 #	url = https://github.com/LuaLS/vscode-lua-webvue

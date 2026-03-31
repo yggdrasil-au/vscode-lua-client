@@ -13,6 +13,6 @@
 		"noEmit": true,
 		"allowImportingTsExtensions": true
 	},
-	"include": ["src", "3rd"],
+	"include": ["src", "submodules"],
 	"exclude": ["node_modules", ".vscode-test"]
 }

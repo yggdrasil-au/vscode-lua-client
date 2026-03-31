@@ -3,13 +3,13 @@ import * as languageserver from './languageserver.ts';
 import * as psi from './psi/psiViewer.ts';
 //import * as addonManager from './addon_manager/registration';
 
-import luadoc from "../3rd/vscode-lua-doc/extension.js";
+import luadoc from "../submodules/vscode-lua-doc/extension.js";
 
 export function activate(context: vscode.ExtensionContext) {
     languageserver.activate(context);
 
     const luaDocContext = {
-        extensionPath: context.extensionPath + '/client/3rd/vscode-lua-doc',
+        extensionPath: context.extensionPath + '/client/submodules/vscode-lua-doc',
         subscriptions: context.subscriptions,
         ViewType: 'lua-doc',
         OpenCommand: 'extension.lua.doc',
