@@ -62,7 +62,28 @@ pnpm install
 pnpm run build
 Pop-Location
 
-# 3. Prepare Publish Directory
+
+# 3. Build Localisation Files
+Write-Host "`n--- Building Localisation Files ---" -ForegroundColor Cyan
+$serverExe = ".\submodules\server\bin\lua-language-server.exe"
+$buildScript = ".\build-settings.lua"
+
+if (Test-Path $serverExe) {
+    Write-Host "Running $buildScript..." -ForegroundColor Gray
+    # Execute the localization generator using the built server binary
+    & $serverExe $buildScript
+
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Localisation build failed!"
+        exit $LASTEXITCODE
+    }
+} else {
+    Write-Error "Could not find lua-language-server.exe. Ensure Step 1 (Server Build) completed."
+    exit 1
+}
+
+
+# 4. Prepare Publish Directory
 Write-Host "`n--- Preparing Distribution Folder ---" -ForegroundColor Cyan
 if (!(Test-Path "package.json")) { Write-Error "Root package.json not found!"; exit 1 }
 
@@ -79,7 +100,7 @@ if (Test-Path "submodules/server/README.md") {
     $readmeContent -replace '\.svg', '.png' | Set-Content "README.md"
 }
 
-# 4. Copy Files to Staging
+# 5. Copy Files to Staging
 Write-Host "Copying files to $publishDir..." -ForegroundColor Yellow
 
 # Updated list reflecting submodules folder and new vscode-lua-doc location
