@@ -3,52 +3,78 @@ Write-Host "--- Initializing Submodules and Building Server ---" -ForegroundColo
 
 # Updated path to submodules/server
 $serverPath = Join-Path $PSScriptRoot "submodules/server"
+$serverExe = Join-Path $serverPath "bin/lua-language-server.exe"
+$buildServer = $true
+
+if (Test-Path $serverExe) {
+    Write-Host "Existing server executable found at $serverExe." -ForegroundColor Yellow
+
+    $choice = Read-Host "Rebuild the server? [r]ebuild / [s]kip (default: skip)"
+    if ([string]::IsNullOrWhiteSpace($choice)) {
+        $choice = "s"
+    }
+
+    switch ($choice.Trim().ToLowerInvariant()) {
+        "r" { $buildServer = $true }
+        "rebuild" { $buildServer = $true }
+        "s" { $buildServer = $false }
+        "skip" { $buildServer = $false }
+        default {
+            Write-Warning "Unrecognized choice '$choice'. Skipping server rebuild."
+            $buildServer = $false
+        }
+    }
+}
 
 if (Test-Path $serverPath) {
-    # 1. Build luamake (Dependency)
-    # Using Push/Pop to ensure we don't lose our place in the folder structure
-    Push-Location (Join-Path $serverPath "submodules/luamake")
+    if ($buildServer) {
+        # 1. Build luamake (Dependency)
+        # Using Push/Pop to ensure we don't lose our place in the folder structure
+        Push-Location (Join-Path $serverPath "submodules/luamake")
 
-    if (Test-Path "compile\build.bat") {
-        Write-Host "Building luamake..." -ForegroundColor Gray
-        cmd /c "compile\build.bat"
-    } else {
-        Write-Warning "luamake build script not found. Skipping submodule initialization."
-    }
-    Pop-Location
-
-    # 2. Configure Build Arguments
-    $luamakeExe = Join-Path $serverPath "submodules/luamake/luamake.exe"
-
-    # Ensure arguments are a clean array of strings
-    $buildArgs = if ($args.Count -eq 0) {
-        @("rebuild")
-    } else {
-        @("rebuild", "--platform", "$($args[0])")
-    }
-
-    # 3. Execute Build in the Current Window
-    if (Test-Path $luamakeExe) {
-        Write-Host "Starting build in current session..." -ForegroundColor Yellow
-
-        Push-Location $serverPath
-
-        # Use --% (stop-parsing symbol) if the call operator still struggles,
-        # but a clean array usually fixes the "r" vs "rebuild" issue.
-        & $luamakeExe $buildArgs
-
-        $lastExit = $LASTEXITCODE
+        if (Test-Path "compile\build.bat") {
+            Write-Host "Building luamake..." -ForegroundColor Gray
+            cmd /c "compile\build.bat"
+        } else {
+            Write-Warning "luamake build script not found. Skipping submodule initialization."
+        }
         Pop-Location
 
-        if ($lastExit -ne 0) {
-            Write-Error "Build failed with Exit Code: $lastExit"
-            exit $lastExit
+        # 2. Configure Build Arguments
+        $luamakeExe = Join-Path $serverPath "submodules/luamake/luamake.exe"
+
+        # Ensure arguments are a clean array of strings
+        $buildArgs = if ($args.Count -eq 0) {
+            @("rebuild")
+        } else {
+            @("rebuild", "--platform", "$($args[0])")
         }
 
-        Write-Host "Build completed successfully!" -ForegroundColor Green
+        # 3. Execute Build in the Current Window
+        if (Test-Path $luamakeExe) {
+            Write-Host "Starting build in current session..." -ForegroundColor Yellow
+
+            Push-Location $serverPath
+
+            # Use --% (stop-parsing symbol) if the call operator still struggles,
+            # but a clean array usually fixes the "r" vs "rebuild" issue.
+            & $luamakeExe $buildArgs
+
+            $lastExit = $LASTEXITCODE
+            Pop-Location
+
+            if ($lastExit -ne 0) {
+                Write-Error "Build failed with Exit Code: $lastExit"
+                exit $lastExit
+            }
+
+            Write-Host "Build completed successfully!" -ForegroundColor Green
+        } else {
+            Write-Error "luamake.exe not found at $luamakeExe"
+            exit 1
+        }
     } else {
-        Write-Error "luamake.exe not found at $luamakeExe"
-        exit 1
+        Write-Host "Skipping server rebuild at user request." -ForegroundColor Yellow
     }
 } else {
     Write-Warning "Server directory not found at $serverPath. Skipping server build."
@@ -88,7 +114,6 @@ New-Item -ItemType Directory -Path $publishDir | Out-Null
 
 # 4. Build Localisation Files
 Write-Host "`n--- Building Localisation Files ---" -ForegroundColor Cyan
-$serverExe = ".\submodules\server\bin\lua-language-server.exe"
 $buildScript = ".\build-settings.lua"
 
 if (Test-Path $serverExe) {

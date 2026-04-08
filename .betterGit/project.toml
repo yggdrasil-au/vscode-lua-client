@@ -1,9 +1,9 @@
-major = 3
-minor = 17
-patch = 10
+major = 1
+minor = 0
+patch = 1
 isAlpha = false
 isBeta = true
-isNodeProject = true
+isNodeProject = false
 [[remotes]]
 name = "origin"
 isPublic = false
