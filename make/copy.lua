@@ -43,7 +43,7 @@ local function copy_directory(from, to, filter)
 end
 
 local extensionPath = ...
-local packageDir = "."
+local packageDir = "submodules/client"
 local sourceDir = fs.path(".")
 local extensionDirName = getExtensionDirName(packageDir)
 local extensionDir = fs.path(extensionPath) / extensionDirName

@@ -7,7 +7,6 @@ If a purpose is not clear from repository contents, it is listed as UNKNOWN.
 
 | Name | Purpose |
 | --- | --- |
-| `setting` | contains generated json schemas for validating the .luarc.json, .luarc.jsonc files |
 | `bin` | Built server binaries and runtime bootstrap files. |
 | `build` | Build artifacts and intermediate outputs. |
 | `doc` | User-facing documentation content. |

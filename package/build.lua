@@ -3,7 +3,8 @@ local json = require 'json-beautify'
 local VERSION = "3.17.1"
 
 local fsu     = require 'fs-utility'
-local package = json.decode(fsu.loadFile('package.json'))
+local packagePath = 'submodules/client/package.json'
+local package = json.decode(fsu.loadFile(packagePath))
 
 package.version = VERSION
 
@@ -24,4 +25,4 @@ local encodeOption = {
     indent  = '\t',
 }
 print('生成 package.json')
-fsu.saveFile('../' .. 'package.json', json.beautify(package, encodeOption) .. '\r\n')
+fsu.saveFile(packagePath, json.beautify(package, encodeOption) .. '\r\n')

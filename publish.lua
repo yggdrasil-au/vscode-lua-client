@@ -32,7 +32,7 @@ dofile(rootPath .. 'build-settings.lua')
 local json = require 'json'
 
 local function loadPackage()
-    local buf = fsu.loadFile('package.json')
+    local buf = fsu.loadFile('submodules/client/package.json')
     if not buf then
         error(ROOT:string())
     end

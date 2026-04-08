@@ -66,16 +66,24 @@ Pop-Location
 
 # 3. Prepare Publish Directory
 Write-Host "`n--- Preparing Distribution Folder ---" -ForegroundColor Cyan
-if (!(Test-Path "package.json")) { Write-Error "Root package.json not found!"; exit 1 }
 
-$packageJson = Get-Content "package.json" | ConvertFrom-Json
+$clientPackageJson = Join-Path $PSScriptRoot "submodules/client/package.json"
+if (!(Test-Path $clientPackageJson)) { Write-Error "Client package.json not found!"; exit 1 }
+
+$packageJson = Get-Content -Raw $clientPackageJson | ConvertFrom-Json
 $version = $packageJson.version
+$extensionPackageJson = [ordered]@{}
+$packageJson.PSObject.Properties | ForEach-Object { $extensionPackageJson[$_.Name] = $_.Value }
+foreach ($field in @("type", "scripts", "dependencies", "devDependencies")) {
+    if ($extensionPackageJson.Contains($field)) {
+        $extensionPackageJson.Remove($field)
+    }
+}
 # temp output folder
 $publishDir = "Build/TMP"
 
 if (Test-Path $publishDir) { Remove-Item -Recurse -Force $publishDir }
 New-Item -ItemType Directory -Path $publishDir | Out-Null
-
 
 
 # 4. Build Localisation Files
@@ -85,140 +93,127 @@ $buildScript = ".\build-settings.lua"
 
 if (Test-Path $serverExe) {
     Write-Host "Running $buildScript..." -ForegroundColor Gray
-    # Execute the localization generator using the built server binary
     & $serverExe $buildScript
-
-    if ($LASTEXITCODE -ne 0) {
-        Write-Error "Localisation build failed!"
-        exit $LASTEXITCODE
-    }
-} else {
-    Write-Error "Could not find lua-language-server.exe. Ensure Step 1 (Server Build) completed."
-    exit 1
+    if ($LASTEXITCODE -ne 0) { Write-Error "Localisation build failed!"; exit $LASTEXITCODE }
 }
 
-
-
-# Update README using server path in submodules
+# Update README
 if (Test-Path "submodules/server/README.md") {
-    $readmeContent = Get-Content "submodules/server/README.md"
-    $readmeContent -replace '\.svg', '.png' | Set-Content "README.md"
+    (Get-Content "submodules/server/README.md") -replace '\.svg', '.png' | Set-Content "README.md"
 }
 
 # 5. Copy Files to Staging
 Write-Host "Copying files to $publishDir..." -ForegroundColor Yellow
 
-$includeList = @(
-    "LICENSE",
-    "submodules/client/node_modules",
-    "submodules/client/out",
-    "submodules/client/package.json",
-    "submodules/vscode-lua-doc/doc",
-    "submodules/vscode-lua-doc/extension.js",
-    "submodules/client/web",
-    "submodules/server/bin",
-    "submodules/server/doc",
-    "submodules/server/locale",
-    "submodules/server/script",
-    "submodules/server/main.lua",
-    "submodules/server/debugger.lua",
-    "submodules/server/meta/template",
-    "submodules/server/meta/submodules",
-    "submodules/server/meta/spell",
-    "images/logo.png",
-    "setting",
-    "package.json",
-    "README.md"
-)
+# Define mapping: "SourcePath" = "DestinationPathRelative"
+# Using a hashtable for explicit control over the internal VSIX structure
+$itemsToCopy = @{
+    "LICENSE"                               = "LICENSE"
+    "submodules/client/package.json"       = "package.json"
+    "README.md"                             = "README.md"
+    "images/logo.png"                       = "images/logo.png"
 
-# --- Validation Step ---
-Write-Host "Validating $includeList..." -ForegroundColor Yellow
-$missingItems = @()
-foreach ($item in $includeList) {
-    if (!(Test-Path (Join-Path $PSScriptRoot $item))) {
-        $missingItems += $item
-    }
+    # Client Structure
+    "submodules/client/node_modules"        = "client/node_modules"
+    "submodules/client/out"                 = "client/out"
+    "submodules/client/web"                 = "client/web"
+    "submodules/vscode-lua-doc/doc"         = "client/submodules/vscode-lua-doc/doc"
+    "submodules/vscode-lua-doc/extension.js"= "client/submodules/vscode-lua-doc/extension.js"
+
+    # Server Structure
+    "submodules/server/bin"                 = "server/bin"
+    "submodules/server/doc"                 = "server/doc"
+    "submodules/server/locale"              = "server/locale"
+    "submodules/server/script"              = "server/script"
+    "submodules/server/main.lua"            = "server/main.lua"
+    "submodules/server/debugger.lua"        = "server/debugger.lua"
+    "submodules/server/test"                = "server/test"
+    "submodules/server/test.lua"            = "server/test.lua"
+    "submodules/server/changelog.md"        = "server/changelog.md"
+    "submodules/server/meta/template"       = "server/meta/template"
+    "submodules/server/meta/submodules"     = "server/meta/3rd"
+    "submodules/server/meta/spell"          = "server/meta/spell"
 }
 
-if ($missingItems.Count -gt 0) {
-    Write-Error "The following required files/folders are missing:"
-    foreach ($missing in $missingItems) {
-        Write-Host "  - $missing" -ForegroundColor Red
-    }
-    exit 1
-}
-Write-Host "All required files/folders found." -ForegroundColor Green
+# 1. Copy explicit items
+foreach ($entry in $itemsToCopy.GetEnumerator()) {
+    $src = Join-Path $PSScriptRoot $entry.Key
+    $dest = Join-Path $publishDir $entry.Value
 
-foreach ($item in $includeList) {
-    $source = Join-Path $PSScriptRoot $item
-
-    # We strip the "submodules/" prefix for the destination so the VSIX internal structure
-    # remains clean (e.g., submodules/server/bin becomes server/bin in the package)
-    $cleanDest = $item -replace '^submodules/', ''
-    $destination = Join-Path $publishDir $cleanDest
-
-    if (Test-Path $source) {
-        $parent = Split-Path $destination
+    if (Test-Path $src) {
+        $parent = Split-Path $dest
         if (!(Test-Path $parent)) { New-Item -ItemType Directory -Path $parent | Out-Null }
-        Copy-Item -Path $source -Destination $destination -Recurse -Force
+        Copy-Item -Path $src -Destination $dest -Recurse -Force
     }
 }
 
-# Copy the docs webview module into the location expected by the compiled client.
-$docSource = Join-Path $PSScriptRoot "submodules/vscode-lua-doc"
-$docDestination = Join-Path $publishDir "client/vscode-lua-doc"
+# Keep a copy of the client manifest alongside the client build output.
+Copy-Item -Path $clientPackageJson -Destination (Join-Path $publishDir "client/package.json") -Force
 
-if (Test-Path $docSource) {
-    if (!(Test-Path $docDestination)) { New-Item -ItemType Directory -Path $docDestination | Out-Null }
-    Copy-Item -Path (Join-Path $docSource "doc") -Destination (Join-Path $docDestination "doc") -Recurse -Force
-    Copy-Item -Path (Join-Path $docSource "extension.js") -Destination (Join-Path $docDestination "extension.js") -Force
+# 2. Copy Localisation Files (Wildcard to catch all generated languages)
+Get-ChildItem -Path $PSScriptRoot -Filter "package.nls*.json" | ForEach-Object {
+    Copy-Item -Path $_.FullName -Destination $publishDir -Force
 }
 
-# Rewrite the staged package manifest so the packaged extension entrypoint matches the staged layout.
-$packageJson | ConvertTo-Json -Depth 100 | Set-Content (Join-Path $publishDir "package.json")
+# 3. Copy Syntaxes (Try to find it in client if not in root)
+$syntaxPath = if (Test-Path "syntaxes") { "syntaxes" } else { "submodules/client/syntaxes" }
+if (Test-Path $syntaxPath) {
+    Copy-Item -Path $syntaxPath -Destination (Join-Path $publishDir "syntaxes") -Recurse -Force
+}
 
-# Stage an ignore file that matches the packaged layout.
+# 4. Handle Server's meta/3rd directory
+# If the server build uses its own 3rd party meta, ensure it exists
+$meta3rd = Join-Path $publishDir "server/meta/3rd"
+if (!(Test-Path $meta3rd)) { New-Item -ItemType Directory -Path $meta3rd | Out-Null }
+
+# Rewrite staged package manifest
+$extensionPackageJson | ConvertTo-Json -Depth 100 | Set-Content (Join-Path $publishDir "package.json")
+
+# Update .vscodeignore to allow the new layout
 @'
 **/*
-!client/node_modules
-!client/out
+!client/node_modules/**
+!client/out/**
 !client/package.json
-!client/web
-!client/vscode-lua-doc/doc
-!client/vscode-lua-doc/extension.js
-!server/bin
-!server/doc
-!server/locale
-!server/script
+!client/web/**
+!client/3rd/**
+!server/bin/**
+!server/doc/**
+!server/locale/**
+!server/script/**
 !server/main.lua
+!server/test/**
+!server/test.lua
 !server/debugger.lua
-!server/meta/submodules
-!server/meta/template
-!server/meta/spell
+!server/changelog.md
+!server/meta/template/**
+!server/meta/3rd/**
+!server/meta/spell/**
 !images/logo.png
-!setting
+!syntaxes/**
 !package.json
 !README.md
+!readme.md
+!changelog.md
 !LICENSE
+!LICENSE.txt
+!package.nls*.json
 '@ | Set-Content (Join-Path $publishDir ".vscodeignore")
 
-# 5. Cleanup
-# Updated cleanup paths to match stripped destination paths
+# 6. Cleanup
 $cleanupList = @("server/log", "server/meta/Lua 5.4 zh-cn")
 foreach ($item in $cleanupList) {
     $path = Join-Path $publishDir $item
     if (Test-Path $path) { Remove-Item -Recurse -Force $path }
 }
 
-# 6. Package VSIX
+# 7. Package VSIX
 Write-Host "`n--- Packaging VSIX ---" -ForegroundColor Cyan
 if (Get-Command vsce -ErrorAction SilentlyContinue) {
     $vsixName = "lua-$version.vsix"
-    Write-Host "Creating $vsixName in $publishDir..." -ForegroundColor Yellow
     Push-Location $publishDir
     vsce package -o "../../$vsixName"
     Pop-Location
     Write-Host "Successfully created $vsixName" -ForegroundColor Green
-} else {
-    Write-Error "vsce command not found. Run: pnpm install -g @vscode/vsce"
 }
+
