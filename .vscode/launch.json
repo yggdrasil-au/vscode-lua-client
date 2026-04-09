@@ -3,26 +3,12 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Export configuration file ",
-            "type": "lua",
-            "request": "launch",
-            "stopOnEntry": false,
-            "program": "${workspaceRoot}/build-settings.lua",
-            "arg": [],
-            "luaexe": "${workspaceFolder}/server/bin/lua-language-server.exe",
-            "sourceCoding": "utf8",
-            "outputCapture": [
-                "print",
-                "stderr",
-            ],
-        },
-        {
+            "name": "Run Extension",
             "type": "extensionHost",
             "request": "launch",
-            "name": "Launch Client",
-            "runtimeExecutable": "${execPath}",
-            "args": ["--extensionDevelopmentPath=${workspaceRoot}"],
-            "outFiles": ["${workspaceRoot}/client/out/**/*.js"],
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}/Build/TMP/"
+            ]
         },
     ]
 }

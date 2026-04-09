@@ -122,28 +122,17 @@ if (Test-Path $serverExe) {
     if ($LASTEXITCODE -ne 0) { Write-Error "Localisation build failed!"; exit $LASTEXITCODE }
 }
 
-# Update README
-if (Test-Path "submodules/server/README.md") {
-    (Get-Content "submodules/server/README.md") -replace '\.svg', '.png' | Set-Content "README.md"
-}
-
 # 5. Copy Files to Staging
 Write-Host "Copying files to $publishDir..." -ForegroundColor Yellow
 
 # Define mapping: "SourcePath" = "DestinationPathRelative"
 # Using a hashtable for explicit control over the internal VSIX structure
 $itemsToCopy = @{
-    "LICENSE"                               = "LICENSE"
-    "submodules/client/package.json"       = "package.json"
-    "README.md"                             = "README.md"
-    "images/logo.png"                       = "images/logo.png"
-
-    # Client Structure
-    "submodules/client/node_modules"        = "client/node_modules"
-    "submodules/client/out"                 = "client/out"
-    "submodules/client/web"                 = "client/web"
-    "submodules/vscode-lua-doc/doc"         = "client/submodules/vscode-lua-doc/doc"
-    "submodules/vscode-lua-doc/extension.js"= "client/submodules/vscode-lua-doc/extension.js"
+    "submodules/client/LICENSE"             = "LICENSE"
+    "submodules/client/package.json"        = "package.json"
+    "submodules/client/README.md"           = "README.md"
+    "submodules/client/images/logo.png"     = "images/logo.png"
+    "submodules/client/dist"                = "dist"
 
     # Server Structure
     "submodules/server/bin"                 = "server/bin"
@@ -173,7 +162,7 @@ foreach ($entry in $itemsToCopy.GetEnumerator()) {
 }
 
 # Keep a copy of the client manifest alongside the client build output.
-Copy-Item -Path $clientPackageJson -Destination (Join-Path $publishDir "client/package.json") -Force
+Copy-Item -Path $clientPackageJson -Destination (Join-Path $publishDir "package.json") -Force
 
 # 2. Copy Localisation Files (Wildcard to catch all generated languages)
 Get-ChildItem -Path $PSScriptRoot -Filter "package.nls*.json" | ForEach-Object {
@@ -181,10 +170,10 @@ Get-ChildItem -Path $PSScriptRoot -Filter "package.nls*.json" | ForEach-Object {
 }
 
 # 3. Copy Syntaxes (Try to find it in client if not in root)
-$syntaxPath = if (Test-Path "syntaxes") { "syntaxes" } else { "submodules/client/syntaxes" }
-if (Test-Path $syntaxPath) {
-    Copy-Item -Path $syntaxPath -Destination (Join-Path $publishDir "syntaxes") -Recurse -Force
-}
+#$syntaxPath = if (Test-Path "syntaxes") { "syntaxes" } else { "submodules/client/syntaxes" }
+#if (Test-Path $syntaxPath) {
+#    Copy-Item -Path $syntaxPath -Destination (Join-Path $publishDir "syntaxes") -Recurse -Force
+#}
 
 # 4. Handle Server's meta/3rd directory
 # If the server build uses its own 3rd party meta, ensure it exists
@@ -193,37 +182,6 @@ if (!(Test-Path $meta3rd)) { New-Item -ItemType Directory -Path $meta3rd | Out-N
 
 # Rewrite staged package manifest
 $extensionPackageJson | ConvertTo-Json -Depth 100 | Set-Content (Join-Path $publishDir "package.json")
-
-# Update .vscodeignore to allow the new layout
-@'
-**/*
-!client/node_modules/**
-!client/out/**
-!client/package.json
-!client/web/**
-!client/3rd/**
-!server/bin/**
-!server/doc/**
-!server/locale/**
-!server/script/**
-!server/main.lua
-!server/test/**
-!server/test.lua
-!server/debugger.lua
-!server/changelog.md
-!server/meta/template/**
-!server/meta/3rd/**
-!server/meta/spell/**
-!images/logo.png
-!syntaxes/**
-!package.json
-!README.md
-!readme.md
-!changelog.md
-!LICENSE
-!LICENSE.txt
-!package.nls*.json
-'@ | Set-Content (Join-Path $publishDir ".vscodeignore")
 
 # 6. Cleanup
 $cleanupList = @("server/log", "server/meta/Lua 5.4 zh-cn")

@@ -141,13 +141,8 @@ print('Starting file copy...')
 local count = copyFiles(ROOT , out) {
     ['submodules'] = {
         ['client'] = {
-            ['node_modules']      = true,
             ['package.json']      = true,
-            ['web']               = true
-        },
-        ['vscode-lua-doc'] = {
-            ['doc']             = true,
-            ['extension.js']    = true,
+            ['dist']              = true,
         },
         ['server'] = {
             ['bin']               = true,
