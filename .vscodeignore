@@ -1,0 +1,17 @@
+**/.history/
+**/.vscode/
+**/.vscode-test/
+**/.vs/
+**/bin/
+**/obj/
+**/node_modules/
+**/build/
+**/src/
+
+.gitignore
+tsconfig.json
+**/*.map
+
+me.md
+PAT.txt
+

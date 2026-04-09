@@ -1,10 +1,17 @@
-major = 1
-minor = 1
+major = 3
+minor = 19
 patch = 0
 isAlpha = false
 isBeta = true
-isNodeProject = false
+isNodeProject = true
 [[remotes]]
 name = "origin"
-isPublic = true
+ispublic = false
 group = "github"
+isPublic = true
+[[remotes]]
+name = "Fork"
+group = "Mirrors"
+provider = "github"
+branch = "client"
+isPublic = true

@@ -1,18 +1,13 @@
+..git/
 
-/publish/
-Build/
-Build/TMP/
-
-/luadoc/out/
-/ovsx-token
-
+/out/
 node_modules/
+dist/
+images/
 
-.history/
-*.vsix
+/out/
+node_modules/
+dist/
+images/
 
-submodules/
-
-setting/schema.json
-setting/schema*.json
-!setting/schema.core.json
+.old/
